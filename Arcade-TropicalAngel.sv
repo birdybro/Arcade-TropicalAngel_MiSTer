@@ -335,10 +335,6 @@ TropicalAngel TropicalAngel
 	.clock_36(clk_36),
 	.ce_0p895(aud_ce),
 	.reset(reset),
-	.dn_clk(clk_sys),
-	.dn_addr(ioctl_addr[16:0]),
-	.dn_data(ioctl_dout),
-	.dn_wr(ioctl_wr && !ioctl_index),
 	.video_r(rs),
 	.video_g(g),
 	.video_b(b),
@@ -347,11 +343,22 @@ TropicalAngel TropicalAngel
 	.video_hblank(hblank),
 	.video_vblank(vblank),
 	.audio_out(audio),
+	.cpu_rom_addr(rom_addr),
+	.cpu_rom_do(rom_addr[0] ? rom_do[15:8] : rom_do[7:0]),
+	.snd_rom_addr(snd_rom_addr),
+	.snd_rom_do(snd_rom_addr[0] ? snd_do[15:8] : snd_do[7:0]),
+	.snd_rom_vma(snd_vma),
+	.sp_addr(sp_do),
+	.sp_graphx32_do(),
 	.dip_switch_1(sw[0]),
 	.dip_switch_2(sw[1]),
 	.input_0(~{4'd0, m_coin_1, 1'b0 /*service*/, m_start_2, m_start_1}),
 	.input_1(~{m_gas_1, 1'b0, m_trick_1, 1'b0, m_up_1, m_down_1, m_left_1, m_right_1}),
 	.input_2(~{m_gas_2, 1'b0, m_trick_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2})
+	.dl_clk(clk_sys),
+	.dl_addr(ioctl_addr[16:0]),
+	.dl_data(ioctl_dout),
+	.dl_wr(ioctl_wr && !ioctl_index)
 );
 
 endmodule
