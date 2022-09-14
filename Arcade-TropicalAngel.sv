@@ -171,8 +171,7 @@ module emu
 	input         OSD_STATUS
 );
 
-///////// Default values for ports not used in this core /////////
-
+// Default values for ports not used in this core
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
@@ -195,59 +194,164 @@ assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
 
-//////////////////////////////////////////////////////////////////
-
-wire [1:0] ar = status[122:121];
-
-assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
-assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
-
+// Configuration String
 `include "build_id.v"
 localparam CONF_STR = {
-	"MyCore;;",
+	"A.TROPICALANGEL;;",
 	"-;",
-	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+	"O[5:3],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"H0O[2],Orientation,Vert,Horz;",
 	"-;",
-	"R[0],Reset and close OSD;",
+	"DIP;",
 	"-;",
+	"R[0],Reset;",
+	"J1,Gas,Trick,Start,Coin;",
+	"jn,A,B,Start,Select;",
 	"V,v",`BUILD_DATE
 };
 
-wire forced_scandoubler;
-wire   [1:0] buttons;
-wire [127:0] status;
-wire  [10:0] ps2_key;
+// HPS
+logic [127:0] status;
+logic   [1:0] buttons;
+logic         forced_scandoubler;
+logic         direct_video;
+logic         ioctl_download;
+logic         ioctl_wr;
+logic  [24:0] ioctl_addr;
+logic   [7:0] ioctl_dout;
+logic   [7:0] ioctl_index;
+logic  [15:0] joystick_0,joystick_1;
+logic  [21:0] gamma_bus;
 
 hps_io #(.CONF_STR(CONF_STR)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
-	.EXT_BUS(),
-	.gamma_bus(),
-
-	.forced_scandoubler(forced_scandoubler),
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask({status[5]}),
+	.status_menumask(direct_video),
+	.forced_scandoubler(forced_scandoubler),
+	.gamma_bus(gamma_bus),
+	.direct_video(direct_video),
 
-	.ps2_key(ps2_key)
+	.ioctl_download(ioctl_download),
+	.ioctl_wr(ioctl_wr),
+	.ioctl_addr(ioctl_addr),
+	.ioctl_dout(ioctl_dout),
+	.ioctl_index(ioctl_index),
+
+	.joystick_0(joystick_0),
+	.joystick_1(joystick_1)
 );
 
-///////////////////////   CLOCKS   ///////////////////////////////
+// Clocks
+logic clk_36,clk_48;
+logic clk_sys = clk_36;
 
-wire clk_sys;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
-	.outclk_0(clk_sys)
+	.outclk_0(clk_48),
+	.outclk_1(clk_36)
 );
 
-wire reset = RESET | status[0] | buttons[1];
+logic reset;
+always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
 
-//////////////////////////////////////////////////////////////////
+// Inputs
+logic m_up_1    = joystick_0[3];
+logic m_down_1  = joystick_0[2];
+logic m_left_1  = joystick_0[1];
+logic m_right_1 = joystick_0[0];
+logic m_gas_1   = joystick_0[4];
+logic m_trick_1 = joystick_0[5];
+logic m_start_1 = joystick_0[6];
+logic m_coin_1  = joystick_0[7];
 
+logic m_up_2    = joystick_1[3];
+logic m_down_2  = joystick_1[2];
+logic m_left_2  = joystick_1[1];
+logic m_right_2 = joystick_1[0];
+logic m_gas_2   = joystick_1[4];
+logic m_trick_2 = joystick_1[5];
+logic m_start_2 = joystick_1[6];
+logic m_coin_2  = joystick_1[7];
 
+// Video
+logic [1:0] ar = status[122:121];
+assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
+assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
+
+logic hblank, vblank;
+logic hs, vs;
+logic [1:0] rs;
+logic [2:0] g;
+logic [2:0] b;
+logic [2:0] r={rs,1'b0};
+
+logic ce_pix;
+always_ff @(posedge clk_48) begin
+	logic [2:0] div;
+	div <= div + 1'd1;
+	ce_pix <= !div;
+end
+
+arcade_video #(384,9) arcade_video
+(
+	.*,
+
+	.clk_video(clk_48),
+	.RGB_in({r,g,b}),
+	.HBlank(hblank),
+	.VBlank(vblank),
+	.HSync(hs),
+	.VSync(vs),
+	.fx(status[5:3])
+);
+
+// Audio
+logic [10:0] audio;
+assign AUDIO_L = {audio, 5'd0};
+assign AUDIO_R = {audio, 5'd0};
+assign AUDIO_S = 0;
+
+logic aud_ce;
+always_ff @(posedge clk_36) begin
+	logic [15:0] sum;
+	aud_ce = 0;
+	sum = sum + 16'd895;
+	if(sum >= 36000) begin
+		sum = sum - 16'd36000;
+		aud_ce = 1;
+	end
+end
+
+// Core
+TropicalAngel TropicalAngel
+(
+	.clock_36(clk_36),
+	.ce_0p895(aud_ce),
+	.reset(reset),
+	.dn_clk(clk_sys),
+	.dn_addr(ioctl_addr[16:0]),
+	.dn_data(ioctl_dout),
+	.dn_wr(ioctl_wr && !ioctl_index),
+	.video_r(rs),
+	.video_g(g),
+	.video_b(b),
+	.video_hs(hs),
+	.video_vs(vs),
+	.video_hblank(hblank),
+	.video_vblank(vblank),
+	.audio_out(audio),
+	.dip_switch_1(sw[0]),
+	.dip_switch_2(sw[1]),
+	.input_0(~{4'd0, m_coin_1, 1'b0 /*service*/, m_start_2, m_start_1}),
+	.input_1(~{m_gas_1, 1'b0, m_trick_1, 1'b0, m_up_1, m_down_1, m_left_1, m_right_1}),
+	.input_2(~{m_gas_2, 1'b0, m_trick_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2})
+);
 
 endmodule

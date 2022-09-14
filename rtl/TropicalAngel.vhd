@@ -83,18 +83,23 @@ port(
  clock_0p895  : in std_logic;
  reset        : in std_logic;
 
- palmode      : in std_logic;
+ -- signals that carry the ROM data from the MiSTer disk
+ dn_clk         : in std_logic;
+ dn_addr        : in  std_logic_vector(16 downto 0);
+ dn_data        : in  std_logic_vector(7 downto 0);
+ dn_wr          : in  std_logic
 
--- tv15Khz_mode : in std_logic;
+ -- tv15Khz_mode : in std_logic;
  video_r        : out std_logic_vector(1 downto 0);
  video_g        : out std_logic_vector(2 downto 0);
  video_b        : out std_logic_vector(2 downto 0);
- video_clk      : out std_logic;
  video_csync    : out std_logic;
  video_blankn   : out std_logic;
  video_hs       : out std_logic;
  video_vs       : out std_logic;
- audio_out      : out std_logic_vector(10 downto 0);
+ video_hblank   : out std_logic;
+ video_vblank   : out std_logic;
+ audio_out      : out std_logic_vector(10 downto 0)
 
  cpu_rom_addr   : out std_logic_vector(14 downto 0);
  cpu_rom_do     : in  std_logic_vector( 7 downto 0);
