@@ -197,7 +197,7 @@ assign BUTTONS = 0;
 // Configuration String
 `include "build_id.v"
 localparam CONF_STR = {
-	"A.TROPICALANGEL;;",
+	"A.TROPANG;;",
 	"-;",
 	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[5:3],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
@@ -247,7 +247,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 );
 
 // Clocks
-logic clk_36,clk_48;
+logic clk_36, clk_48, pll_locked;
 logic clk_sys = clk_36;
 
 pll pll
@@ -255,11 +255,25 @@ pll pll
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_48),
-	.outclk_1(clk_36)
+	.outclk_1(clk_36),
+	.locked(pll_locked)
 );
 
 logic reset;
 always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
+
+// ROM Loading
+
+/* ROM structure
+00000 - 07FFF main CPU    32k  ta-a-3k ta-a-3m ta-a-3n ta-a-3q
+08000 - 09FFF  snd CPU     8k  ta-s-1a
+0A000 - 0FFFF gfx1        24k  ta-a-3e ta-a-3d ta-a-3c
+10000 - 1BFFF gfx2        48k  ta-b-5j ta-b-5h ta-b-5e ta-b-5d ta-b-5c ta-b-5a
+1C000 - 1C0FF chr pal lo 256b  ta-a-5a
+1C100 - 1C1FF chr pal hi 256b  ta-a-5b
+1C200 - 1C2FF spr pal    256b  ta-b-3d
+1C300 - 1C31F spr lut     32b  ta-b-1b
+*/
 
 // Inputs
 logic m_up_1    = joystick_0[3];
@@ -343,13 +357,6 @@ TropicalAngel TropicalAngel
 	.video_hblank(hblank),
 	.video_vblank(vblank),
 	.audio_out(audio),
-	.cpu_rom_addr(rom_addr),
-	.cpu_rom_do(rom_addr[0] ? rom_do[15:8] : rom_do[7:0]),
-	.snd_rom_addr(snd_rom_addr),
-	.snd_rom_do(snd_rom_addr[0] ? snd_do[15:8] : snd_do[7:0]),
-	.snd_rom_vma(snd_vma),
-	.sp_addr(sp_do),
-	.sp_graphx32_do(),
 	.dip_switch_1(sw[0]),
 	.dip_switch_2(sw[1]),
 	.input_0(~{4'd0, m_coin_1, 1'b0 /*service*/, m_start_2, m_start_1}),
