@@ -200,7 +200,7 @@ localparam CONF_STR = {
 	"A.TROPANG;;",
 	"-;",
 	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"O[5:3],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"O[7:5],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"H0O[2],Orientation,Vert,Horz;",
 	"-;",
 	"DIP;",
@@ -295,7 +295,7 @@ logic m_start_2 = joystick_1[6];
 logic m_coin_2  = joystick_1[7];
 
 // Video
-logic [1:0] ar = status[122:121];
+logic [1:0] ar = status[4:3];
 assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
 
@@ -323,7 +323,7 @@ arcade_video #(384,9) arcade_video
 	.VBlank(vblank),
 	.HSync(hs),
 	.VSync(vs),
-	.fx(status[5:3])
+	.fx(status[7:5])
 );
 
 // Audio
