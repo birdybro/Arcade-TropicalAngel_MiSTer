@@ -176,7 +176,6 @@ assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-// assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 assign VGA_F1 = 0;
@@ -192,10 +191,9 @@ assign LED_POWER = 0;
 assign BUTTONS = 0;
 
 // Port assignments
-
 assign LED_USER  = ioctl_download;
 assign SDRAM_CLK = clk_mem;
-
+assign SDRAM_CKE = 1;
 
 // Configuration String
 `include "build_id.v"
@@ -338,13 +336,29 @@ always_ff @(posedge clk_mem) begin
 	if (snd_vma_r2) snd_addr <= 16'h4000 + snd_rom_addr[12:1];
 end
 
+// reset signal generation
+reg reset = 1;
+reg rom_loaded = 0;
+always @(posedge clk_sys) begin
+	reg ioctl_downlD;
+	reg [15:0] reset_count;
+	ioctl_downlD <= ioctl_downl;
+
+	if (status[0] | buttons[1] | ~rom_loaded) reset_count <= 16'hffff;
+	else if (reset_count != 0) reset_count <= reset_count - 1'd1;
+
+	if (ioctl_downlD & ~ioctl_downl) rom_loaded <= 1;
+	reset <= reset_count != 16'h0000;
+
+end
+
 // Inputs
 wire m_up_1    = joystick_0[3];
 wire m_down_1  = joystick_0[2];
 wire m_left_1  = joystick_0[1];
 wire m_right_1 = joystick_0[0];
 wire m_gas_1   = joystick_0[4];
-wire m_trick_1 = joystick_0[5];
+wire m_revrs_1 = joystick_0[5];
 wire m_start_1 = joystick_0[6];
 wire m_coin_1  = joystick_0[7];
 
@@ -353,9 +367,12 @@ wire m_down_2  = joystick_1[2];
 wire m_left_2  = joystick_1[1];
 wire m_right_2 = joystick_1[0];
 wire m_gas_2   = joystick_1[4];
-wire m_trick_2 = joystick_1[5];
+wire m_revrs_2 = joystick_1[5];
 wire m_start_2 = joystick_1[6];
 wire m_coin_2  = joystick_1[7];
+
+wire [7:0] dip1 = ~8'b00000010;
+wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
 
 // Video
 wire       palmode = status[1];
@@ -430,8 +447,8 @@ TropicalAngel TropicalAngel
 	.sp_addr(sp_addr),
 	.sp_graphx32_do(sp_do),
 	.input_0(~{4'd0, m_coin_1, 1'b0 /*service*/, m_start_2, m_start_1}),
-	.input_1(~{m_gas_1, 1'b0, m_trick_1, 1'b0, m_up_1, m_down_1, m_left_1, m_right_1}),
-	.input_2(~{m_gas_2, 1'b0, m_trick_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2}),
+	.input_1(~{m_gas_1, 1'b0, m_revrs_1, 1'b0, m_up_1, m_down_1, m_left_1, m_right_1}),
+	.input_2(~{m_gas_2, 1'b0, m_revrs_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2}),
 	.dl_clk(clk_mem),
 	.dl_addr(ioctl_addr[16:0]),
 	.dl_data(ioctl_dout),
