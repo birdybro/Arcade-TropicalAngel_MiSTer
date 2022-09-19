@@ -127,8 +127,8 @@ localparam STATE_LAST      = 4'd8;
 reg [3:0] t;
 always @(posedge clk) begin
         reg clkref_d;
-        clkref_d <= clkref;
-        if ((~clkref_d && clkref && t == 4'd2) || (t != 4'd2)) t <= t + 1'd1;
+//        clkref_d <= clkref;
+//        if ((~clkref_d && clkref && t == 4'd2) || (t != 4'd2)) t <= t + 1'd1;
 	if (t == STATE_LAST) t <= STATE_FIRST;
 end
 
@@ -227,12 +227,12 @@ always @(*) begin
         end else if (sp_addr != addr_last2[PORT_SP]) begin
                 next_port[1] = PORT_SP;
                 addr_latch_next[1] = { 1'b1, 4'd0, sp_addr, 1'b0 };
-        end else if (chr1_addr != addr_last2[PORT_CHR1]) begin
-                next_port[1] = PORT_CHR1;
-                addr_latch_next[1] = { 1'b1, 4'd0, chr1_addr, 1'b0 };
-        end else if (chr2_addr != addr_last2[PORT_CHR2]) begin
-                next_port[1] = PORT_CHR2;
-                addr_latch_next[1] = { 1'b1, 4'd0, chr2_addr, 1'b0 };
+//        end else if (chr1_addr != addr_last2[PORT_CHR1]) begin
+//                next_port[1] = PORT_CHR1;
+//                addr_latch_next[1] = { 1'b1, 4'd0, chr1_addr, 1'b0 };
+//        end else if (chr2_addr != addr_last2[PORT_CHR2]) begin
+//                next_port[1] = PORT_CHR2;
+//                addr_latch_next[1] = { 1'b1, 4'd0, chr2_addr, 1'b0 };
         end else begin
                 next_port[1] = PORT_NONE;
                 addr_latch_next[1] = addr_latch[1];
@@ -366,8 +366,8 @@ always @(posedge clk) begin
 			case(port[1])
 				PORT_REQ:	port2_q[15:0] <= sd_din;
 				PORT_SP :       sp_q[15:0] <= sd_din;
-				PORT_CHR1 :     chr1_q[15:0] <= sd_din;
-				PORT_CHR2 :     chr2_q[15:0] <= sd_din;
+//				PORT_CHR1 :     chr1_q[15:0] <= sd_din;
+//				PORT_CHR2 :     chr2_q[15:0] <= sd_din;
 				default: ;
 			endcase;
 		end
@@ -376,8 +376,8 @@ always @(posedge clk) begin
 			case(port[1])
 				PORT_REQ: begin port2_q[31:16] <= sd_din; port2_ack <= port2_req; end
 				PORT_SP : begin    sp_q[31:16] <= sd_din; end
-				PORT_CHR1 : begin    chr1_q[31:16] <= sd_din; end
-				PORT_CHR2 : begin    chr2_q[31:16] <= sd_din; end
+//				PORT_CHR1 : begin    chr1_q[31:16] <= sd_din; end
+//				PORT_CHR2 : begin    chr2_q[31:16] <= sd_din; end
 				default: ;
 			endcase;
 		end
