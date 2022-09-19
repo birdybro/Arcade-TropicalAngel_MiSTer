@@ -176,7 +176,6 @@ assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 assign VGA_F1 = 0;
@@ -194,25 +193,25 @@ assign BUTTONS = 0;
 // Port assignments
 assign LED_USER  = ioctl_download;
 assign SDRAM_CLK = clk_mem;
+assign SDRAM_CKE = 1;
 
 // Configuration String
 `include "build_id.v"
 localparam CONF_STR = {
 	"A.TROPANG;;",
 	"-;",
+	"O[1],Video Timing,Original, PAL 50Hz;",
 	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[7:5],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
-	"O[1],Video Timing,Original, PAL 50Hz;",
-	"O[8],Flip,Off,On;",
-	"O[2],Invulnerability,Off,On;",
+	"H0O[2],Orientation,Vert,Horz;",
+	// "-;",
+	// "DIP;",
 	"-;",
-	"T0,Reset;",
+	"R[0],Reset;",
 	"J1,Gas,Trick,Start,Coin;",
 	"jn,A,B,Start,Select;",
 	"V,v",`BUILD_DATE
 };
-
-wire invuln = status[2];
 
 // HPS
 wire [127:0] status;
@@ -250,7 +249,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 );
 
 // Clocks
-wire clk_sys, clk_mem, clk_vid, pll_locked;
+logic clk_sys, clk_mem, pll_locked;
 
 pll pll
 (
@@ -258,12 +257,11 @@ pll pll
 	.rst(0),
 	.outclk_0(clk_mem), // 73.727997 MHz
 	.outclk_1(clk_sys), // 36.863998 MHz
-	.outclk_2(clk_vid), // 49.151997 MHz
 	.locked(pll_locked)
 );
 
-// logic reset;
-// always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
+logic reset;
+always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
 
 // ROM Loading
 
@@ -342,14 +340,14 @@ end
 reg reset = 1;
 reg rom_loaded = 0;
 always @(posedge clk_sys) begin
-	reg ioctl_downloadD;
+	reg ioctl_downlD;
 	reg [15:0] reset_count;
-	ioctl_downloadD <= ioctl_download;
+	ioctl_downlD <= ioctl_downl;
 
 	if (status[0] | buttons[1] | ~rom_loaded) reset_count <= 16'hffff;
 	else if (reset_count != 0) reset_count <= reset_count - 1'd1;
 
-	if (ioctl_downloadD & ~ioctl_download) rom_loaded <= 1;
+	if (ioctl_downlD & ~ioctl_downl) rom_loaded <= 1;
 	reset <= reset_count != 16'h0000;
 
 end
@@ -378,7 +376,6 @@ wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
 
 // Video
 wire       palmode = status[1];
-wire       flip    = status[8];
 wire [1:0] ar      = status[4:3];
 assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
@@ -390,8 +387,8 @@ wire [2:0] g;
 wire [2:0] b;
 wire [2:0] r={rs,1'b0};
 
-reg ce_pix;
-always_ff @(posedge clk_vid) begin
+logic ce_pix;
+always_ff @(posedge clk_mem) begin
 	logic [2:0] div;
 	div <= div + 1'd1;
 	ce_pix <= !div;
@@ -401,7 +398,7 @@ arcade_video #(384,9) arcade_video
 (
 	.*,
 
-	.clk_video(clk_vid),
+	.clk_video(clk_mem),
 	.RGB_in({r,g,b}),
 	.HBlank(hblank),
 	.VBlank(vblank),
