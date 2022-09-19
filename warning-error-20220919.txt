@@ -1,0 +1,51 @@
+Warning (10036): Verilog HDL or VHDL warning at Arcade-TropicalAngel.sv(375): object "dip1" assigned a value but never read
+Warning (10036): Verilog HDL or VHDL warning at Arcade-TropicalAngel.sv(376): object "dip2" assigned a value but never read
+Warning (10541): VHDL Signal Declaration warning at TropicalAngel.vhd(92): used implicit default value for signal "video_clk" because signal was never assigned a value or an explicit default value. Use of implicit default value may introduce unintended design optimizations.
+Warning (10036): Verilog HDL or VHDL warning at TropicalAngel.vhd(208): object "spr_posv_r" assigned a value but never read
+Warning (10492): VHDL Process Statement warning at TropicalAngel.vhd(266): signal "cpu_ena" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
+Warning (10492): VHDL Process Statement warning at TropicalAngel.vhd(266): signal "cpu_mreq_n" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
+Warning (10030): Net "delta.data_a" at jt5205_adpcm.v(29) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "delta.waddr_a" at jt5205_adpcm.v(29) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "delta.we_a" at jt5205_adpcm.v(29) has no driver or initial value, using a default initial value '0'
+Warning (14284): Synthesized away the following node(s):
+	Warning (14285): Synthesized away the following LCELL buffer node(s):
+		Warning (14320): Synthesized away node "pll_hdmi:pll_hdmi|pll_hdmi_0002:pll_hdmi_inst|altera_pll:altera_pll_i|cntsel_temp[4]"
+		Warning (14320): Synthesized away node "pll_hdmi:pll_hdmi|pll_hdmi_0002:pll_hdmi_inst|altera_pll:altera_pll_i|cntsel_temp[3]"
+		Warning (14320): Synthesized away node "pll_hdmi:pll_hdmi|pll_hdmi_0002:pll_hdmi_inst|altera_pll:altera_pll_i|cntsel_temp[2]"
+		Warning (14320): Synthesized away node "pll_hdmi:pll_hdmi|pll_hdmi_0002:pll_hdmi_inst|altera_pll:altera_pll_i|cntsel_temp[1]"
+		Warning (14320): Synthesized away node "pll_hdmi:pll_hdmi|pll_hdmi_0002:pll_hdmi_inst|altera_pll:altera_pll_i|cntsel_temp[0]"
+		Warning (14320): Synthesized away node "pll_hdmi:pll_hdmi|pll_hdmi_0002:pll_hdmi_inst|altera_pll:altera_pll_i|gnd"
+Critical Warning (127005): Memory depth (64) in the design file differs from memory depth (49) in the Memory Initialization File "C:/Users/aberu/OneDrive/Documents/GitHub/Arcade-TropicalAngel_MiSTer/db/Arcade-TropicalAngel.ram0_jt5205_adpcm_63cff6af.hdl.mif" -- setting initial value for remaining addresses to 0
+Warning (12241): 16 hierarchies have connectivity warnings - see the Connectivity Checks report folder
+Warning (14284): Synthesized away the following node(s):
+	Warning (14285): Synthesized away the following RAM node(s):
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_l|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a4"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_l|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a5"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_l|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a6"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_l|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a7"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_h|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a4"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_h|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a5"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_h|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a6"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:char_palette_h|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a7"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:spr_palette|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a4"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:spr_palette|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a5"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:spr_palette|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a6"
+		Warning (14320): Synthesized away node "emu:emu|TropicalAngel:TropicalAngel|dpram:spr_palette|altsyncram:ram_rtl_0|altsyncram_07j1:auto_generated|ram_block1a7"
+Warning (13050): Open-drain buffer(s) that do not directly drive top-level pin(s) are removed
+	Warning (13051): Converted the fanout from the open-drain buffer "emu:emu|SD_CS" to the node "emu:emu|SD_CS" into a wire
+Warning (13039): The following bidirectional pins have no drivers
+	Warning (13040): bidirectional pin "SDIO_DAT[0]" has no driver
+Warning (13050): Open-drain buffer(s) that do not directly drive top-level pin(s) are removed
+	Warning (13051): Converted the fanout from the open-drain buffer "HDMI_I2C_SCL" to the node "hdmi_scl_en" into a wire
+Warning (13024): Output pins are stuck at VCC or GND
+	Warning (13410): Pin "SDRAM_nCS" is stuck at GND
+	Warning (13410): Pin "SDRAM_CKE" is stuck at VCC
+Critical Warning (18061): Ignored Power-Up Level option on the following registers
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|vcnt[7] will power up to High
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|vcnt[6] will power up to High
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|vcnt[5] will power up to High
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|vcnt[2] will power up to High
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|vcnt[3] will power up to High
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|vcnt[4] will power up to High
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|moon_patrol_sound_board:moon_patrol_sound_board|CLK_SUM[0] will power up to Low
+	Critical Warning (18010): Register emu:emu|TropicalAngel:TropicalAngel|moon_patrol_sound_board:moon_patrol_sound_board|CLK_SUM[31] will power up to Low
