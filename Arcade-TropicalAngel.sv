@@ -176,7 +176,7 @@ assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
+assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 assign VGA_F1 = 0;
@@ -250,7 +250,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 );
 
 // Clocks
-logic clk_sys, clk_mem, pll_locked;
+wire clk_sys, clk_mem, clk_vid, pll_locked;
 
 pll pll
 (
@@ -258,6 +258,7 @@ pll pll
 	.rst(0),
 	.outclk_0(clk_mem), // 73.727997 MHz
 	.outclk_1(clk_sys), // 36.863998 MHz
+	.outclk_2(clk_vid), // 49.151997 MHz
 	.locked(pll_locked)
 );
 
@@ -389,8 +390,8 @@ wire [2:0] g;
 wire [2:0] b;
 wire [2:0] r={rs,1'b0};
 
-logic ce_pix;
-always_ff @(posedge clk_mem) begin
+reg ce_pix;
+always_ff @(posedge clk_vid) begin
 	logic [2:0] div;
 	div <= div + 1'd1;
 	ce_pix <= !div;
@@ -400,7 +401,7 @@ arcade_video #(384,9) arcade_video
 (
 	.*,
 
-	.clk_video(clk_mem),
+	.clk_video(clk_vid),
 	.RGB_in({r,g,b}),
 	.HBlank(hblank),
 	.VBlank(vblank),
