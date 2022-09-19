@@ -176,34 +176,38 @@ assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
+// assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
-assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER  = 0;
 assign VGA_DISABLE = 0;
 assign HDMI_FREEZE = 0;
 
 assign AUDIO_S = 0;
-assign AUDIO_L = 0;
-assign AUDIO_R = 0;
 assign AUDIO_MIX = 0;
 
 assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
 
+// Port assignments
+
+assign LED_USER  = ioctl_download;
+assign SDRAM_CLK = clk_mem;
+
+
 // Configuration String
 `include "build_id.v"
 localparam CONF_STR = {
 	"A.TROPANG;;",
 	"-;",
+	"O[1],Video Timing,Original, PAL 50Hz;",
 	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[7:5],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"H0O[2],Orientation,Vert,Horz;",
-	"-;",
-	"DIP;",
+	// "-;",
+	// "DIP;",
 	"-;",
 	"R[0],Reset;",
 	"J1,Gas,Trick,Start,Coin;",
@@ -212,17 +216,17 @@ localparam CONF_STR = {
 };
 
 // HPS
-logic [127:0] status;
-logic   [1:0] buttons;
-logic         forced_scandoubler;
-logic         direct_video;
-logic         ioctl_download;
-logic         ioctl_wr;
-logic  [24:0] ioctl_addr;
-logic   [7:0] ioctl_dout;
-logic   [7:0] ioctl_index;
-logic  [15:0] joystick_0,joystick_1;
-logic  [21:0] gamma_bus;
+wire [127:0] status;
+wire   [1:0] buttons;
+wire         forced_scandoubler;
+wire         direct_video;
+wire         ioctl_download;
+wire         ioctl_wr;
+wire  [24:0] ioctl_addr;
+wire   [7:0] ioctl_dout;
+wire   [7:0] ioctl_index;
+wire  [15:0] joystick_0,joystick_1;
+wire  [21:0] gamma_bus;
 
 hps_io #(.CONF_STR(CONF_STR)) hps_io
 (
@@ -247,15 +251,14 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 );
 
 // Clocks
-logic clk_36, clk_48, pll_locked;
-logic clk_sys = clk_36;
+logic clk_sys, clk_mem, pll_locked;
 
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
-	.outclk_0(clk_48),
-	.outclk_1(clk_36),
+	.outclk_0(clk_mem), // 73.727997 MHz
+	.outclk_1(clk_sys), // 36.863998 MHz
 	.locked(pll_locked)
 );
 
@@ -275,39 +278,100 @@ always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_dow
 1C300 - 1C31F spr lut     32b  ta-b-1b
 */
 
-// Inputs
-logic m_up_1    = joystick_0[3];
-logic m_down_1  = joystick_0[2];
-logic m_left_1  = joystick_0[1];
-logic m_right_1 = joystick_0[0];
-logic m_gas_1   = joystick_0[4];
-logic m_trick_1 = joystick_0[5];
-logic m_start_1 = joystick_0[6];
-logic m_coin_1  = joystick_0[7];
+logic [14:0] rom_addr;
+logic [15:0] rom_do;
+logic [12:0] snd_rom_addr;
+logic [16:1] snd_addr;
+logic [15:0] snd_do;
+logic        snd_vma, snd_vma_r, snd_vma_r2;
+logic [14:0] sp_addr;
+logic [31:0] sp_do;
 
-logic m_up_2    = joystick_1[3];
-logic m_down_2  = joystick_1[2];
-logic m_left_2  = joystick_1[1];
-logic m_right_2 = joystick_1[0];
-logic m_gas_2   = joystick_1[4];
-logic m_trick_2 = joystick_1[5];
-logic m_start_2 = joystick_1[6];
-logic m_coin_2  = joystick_1[7];
+wire [24:0] sp_ioctl_addr = ioctl_addr - 17'h10000; //SP ROM offset: 0x10000
+
+logic port1_req, port2_req;
+sdram sdram(
+	.*,
+	.init_n        ( pll_locked ),
+	.clk           ( clk_mem    ),
+
+	// port1 used for main + sound CPU
+	.port1_req     ( port1_req ),
+	.port1_ack     ( ),
+	.port1_a       ( ioctl_addr[23:1] ),
+	.port1_ds      ( {ioctl_addr[0], ~ioctl_addr[0]} ),
+	.port1_we      ( ioctl_download ),
+	.port1_d       ( {ioctl_dout, ioctl_dout} ),
+	.port1_q       ( ),
+
+	.cpu1_addr     ( ioctl_download ? 16'hffff : {2'b00, rom_addr[14:1]} ),
+	.cpu1_q        ( rom_do ),
+	.cpu2_addr     ( ioctl_download ? 16'hffff : snd_addr ),
+	.cpu2_q        ( snd_do ),
+
+	// port2 for sprite graphics
+	.port2_req     ( port2_req ),
+	.port2_ack     ( ),
+	.port2_a       ( {sp_ioctl_addr[23:16], sp_ioctl_addr[13:0], sp_ioctl_addr[15]} ), // merge sprite roms to 32-bit wide words
+	.port2_ds      ( {sp_ioctl_addr[14], ~sp_ioctl_addr[14]} ),
+	.port2_we      ( ioctl_download ),
+	.port2_d       ( {ioctl_dout, ioctl_dout} ),
+	.port2_q       ( ),
+
+	.sp_addr       ( ioctl_download ? 15'h7fff : sp_addr ),
+	.sp_q          ( sp_do )
+);
+
+// ROM download controller
+always_ff @(posedge clk_mem) begin
+	logic ioctl_wr_last = 0; // blocking!
+	ioctl_wr_last <= ioctl_wr;
+	if (ioctl_download) begin
+		if (~ioctl_wr_last && ioctl_wr) begin
+			port1_req <= ~port1_req;
+			port2_req <= ~port2_req;
+		end
+	end
+	// // async clock domain crossing here (clk_aud -> clk_sys) (might not be needed in MiSTer core)
+	snd_vma_r <= snd_vma;
+	snd_vma_r2 <= snd_vma_r;
+	if (snd_vma_r2) snd_addr <= 16'h4000 + snd_rom_addr[12:1];
+end
+
+// Inputs
+wire m_up_1    = joystick_0[3];
+wire m_down_1  = joystick_0[2];
+wire m_left_1  = joystick_0[1];
+wire m_right_1 = joystick_0[0];
+wire m_gas_1   = joystick_0[4];
+wire m_trick_1 = joystick_0[5];
+wire m_start_1 = joystick_0[6];
+wire m_coin_1  = joystick_0[7];
+
+wire m_up_2    = joystick_1[3];
+wire m_down_2  = joystick_1[2];
+wire m_left_2  = joystick_1[1];
+wire m_right_2 = joystick_1[0];
+wire m_gas_2   = joystick_1[4];
+wire m_trick_2 = joystick_1[5];
+wire m_start_2 = joystick_1[6];
+wire m_coin_2  = joystick_1[7];
 
 // Video
-logic [1:0] ar = status[4:3];
+wire       palmode = status[1];
+wire [1:0] ar      = status[4:3];
 assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
 
-logic hblank, vblank;
-logic hs, vs;
-logic [1:0] rs;
-logic [2:0] g;
-logic [2:0] b;
-logic [2:0] r={rs,1'b0};
+wire hblank, vblank;
+wire hs, vs;
+wire [1:0] rs;
+wire [2:0] g;
+wire [2:0] b;
+wire [2:0] r={rs,1'b0};
 
 logic ce_pix;
-always_ff @(posedge clk_48) begin
+always_ff @(posedge clk_mem) begin
 	logic [2:0] div;
 	div <= div + 1'd1;
 	ce_pix <= !div;
@@ -317,7 +381,7 @@ arcade_video #(384,9) arcade_video
 (
 	.*,
 
-	.clk_video(clk_48),
+	.clk_video(clk_mem),
 	.RGB_in({r,g,b}),
 	.HBlank(hblank),
 	.VBlank(vblank),
@@ -332,23 +396,24 @@ assign AUDIO_L = {audio, 5'd0};
 assign AUDIO_R = {audio, 5'd0};
 assign AUDIO_S = 0;
 
-logic aud_ce;
-always_ff @(posedge clk_36) begin
+logic clk_aud;
+always_ff @(posedge clk_sys) begin
 	logic [15:0] sum;
-	aud_ce = 0;
+	clk_aud = 0;
 	sum = sum + 16'd895;
 	if(sum >= 36000) begin
 		sum = sum - 16'd36000;
-		aud_ce = 1;
+		clk_aud = 1;
 	end
 end
 
 // Core
 TropicalAngel TropicalAngel
 (
-	.clock_36(clk_36),
-	.ce_0p895(aud_ce),
+	.clock_36(clk_sys),
+	.clock_0p895(clk_aud),
 	.reset(reset),
+	.palmode(palmode),
 	.video_r(rs),
 	.video_g(g),
 	.video_b(b),
@@ -357,12 +422,17 @@ TropicalAngel TropicalAngel
 	.video_hblank(hblank),
 	.video_vblank(vblank),
 	.audio_out(audio),
-	.dip_switch_1(sw[0]),
-	.dip_switch_2(sw[1]),
+	.cpu_rom_addr(rom_addr),
+	.cpu_rom_do(rom_addr[0] ? rom_do[15:8] : rom_do[7:0]),
+	.snd_rom_addr(snd_rom_addr),
+	.snd_rom_do(snd_rom_addr[0] ? snd_do[15:8] : snd_do[7:0]),
+	.snd_rom_vma(snd_vma),
+	.sp_addr(sp_addr),
+	.sp_graphx32_do(sp_do),
 	.input_0(~{4'd0, m_coin_1, 1'b0 /*service*/, m_start_2, m_start_1}),
 	.input_1(~{m_gas_1, 1'b0, m_trick_1, 1'b0, m_up_1, m_down_1, m_left_1, m_right_1}),
-	.input_2(~{m_gas_2, 1'b0, m_trick_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2})
-	.dl_clk(clk_sys),
+	.input_2(~{m_gas_2, 1'b0, m_trick_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2}),
+	.dl_clk(clk_mem),
 	.dl_addr(ioctl_addr[16:0]),
 	.dl_data(ioctl_dout),
 	.dl_wr(ioctl_wr && !ioctl_index)
