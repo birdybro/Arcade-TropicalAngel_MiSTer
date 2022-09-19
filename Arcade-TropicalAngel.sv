@@ -200,18 +200,19 @@ assign SDRAM_CKE = 1;
 localparam CONF_STR = {
 	"A.TROPANG;;",
 	"-;",
-	"O[1],Video Timing,Original, PAL 50Hz;",
 	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[7:5],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
-	"H0O[2],Orientation,Vert,Horz;",
-	// "-;",
-	// "DIP;",
+	"O[1],Video Timing,Original, PAL 50Hz;",
+	"O[8],Flip,Off,On;",
+	"O[2],Invulnerability,Off,On;",
 	"-;",
-	"R[0],Reset;",
+	"T0,Reset;",
 	"J1,Gas,Trick,Start,Coin;",
 	"jn,A,B,Start,Select;",
 	"V,v",`BUILD_DATE
 };
+
+wire invuln = status[2];
 
 // HPS
 wire [127:0] status;
@@ -260,8 +261,8 @@ pll pll
 	.locked(pll_locked)
 );
 
-logic reset;
-always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
+// logic reset;
+// always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
 
 // ROM Loading
 
@@ -340,14 +341,14 @@ end
 reg reset = 1;
 reg rom_loaded = 0;
 always @(posedge clk_sys) begin
-	reg ioctl_downlD;
+	reg ioctl_downloadD;
 	reg [15:0] reset_count;
-	ioctl_downlD <= ioctl_downl;
+	ioctl_downloadD <= ioctl_download;
 
 	if (status[0] | buttons[1] | ~rom_loaded) reset_count <= 16'hffff;
 	else if (reset_count != 0) reset_count <= reset_count - 1'd1;
 
-	if (ioctl_downlD & ~ioctl_downl) rom_loaded <= 1;
+	if (ioctl_downloadD & ~ioctl_download) rom_loaded <= 1;
 	reset <= reset_count != 16'h0000;
 
 end
@@ -376,6 +377,7 @@ wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
 
 // Video
 wire       palmode = status[1];
+wire       flip    = status[8];
 wire [1:0] ar      = status[4:3];
 assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
