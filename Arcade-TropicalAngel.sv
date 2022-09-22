@@ -260,9 +260,6 @@ pll pll
 	.locked(pll_locked)
 );
 
-logic reset;
-always_ff @(posedge clk_sys) reset <=(RESET | status[0] | buttons[1] | ioctl_download);
-
 // ROM Loading
 
 /* ROM structure
