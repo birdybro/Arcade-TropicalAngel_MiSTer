@@ -204,8 +204,9 @@ localparam CONF_STR = {
 	"O[4:3],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[7:5],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"H0O[2],Orientation,Vert,Horz;",
-	// "-;",
-	// "DIP;",
+	"O[8],Flip,Off,On;",
+	"-;",
+	"O[9],Invulnerability,Off,On;",
 	"-;",
 	"R[0],Reset;",
 	"J1,Gas,Trick,Start,Coin;",
@@ -214,17 +215,17 @@ localparam CONF_STR = {
 };
 
 // HPS
-wire [127:0] status;
-wire   [1:0] buttons;
-wire         forced_scandoubler;
-wire         direct_video;
-wire         ioctl_download;
-wire         ioctl_wr;
-wire  [24:0] ioctl_addr;
-wire   [7:0] ioctl_dout;
-wire   [7:0] ioctl_index;
-wire  [15:0] joystick_0,joystick_1;
-wire  [21:0] gamma_bus;
+logic [127:0] status;
+logic   [1:0] buttons;
+logic         forced_scandoubler;
+logic         direct_video;
+logic         ioctl_download;
+logic         ioctl_wr;
+logic  [24:0] ioctl_addr;
+logic   [7:0] ioctl_dout;
+logic   [7:0] ioctl_index;
+logic  [15:0] joystick_0,joystick_1;
+wire   [21:0] gamma_bus;
 
 hps_io #(.CONF_STR(CONF_STR)) hps_io
 (
@@ -249,14 +250,15 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 );
 
 // Clocks
-logic clk_sys, clk_mem, pll_locked;
+logic clk_sys, clk_mem, clk_vid, pll_locked;
 
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
-	.outclk_0(clk_mem), // 73.727997 MHz
-	.outclk_1(clk_sys), // 36.863998 MHz
+	.outclk_0(clk_mem), // 73.737373 MHz
+	.outclk_1(clk_sys), // 36.868686 MHz
+	.outclk_2(clk_vid), // 47.712418 MHz
 	.locked(pll_locked)
 );
 
@@ -282,7 +284,7 @@ logic        snd_vma, snd_vma_r, snd_vma_r2;
 logic [14:0] sp_addr;
 logic [31:0] sp_do;
 
-wire [24:0] sp_ioctl_addr = ioctl_addr - 17'h10000; //SP ROM offset: 0x10000
+wire  [24:0] sp_ioctl_addr = ioctl_addr - 17'h10000; //SP ROM offset: 0x10000
 
 logic port1_req, port2_req;
 sdram sdram(
@@ -334,11 +336,11 @@ always_ff @(posedge clk_mem) begin
 end
 
 // reset signal generation
-reg reset = 1;
-reg rom_loaded = 0;
-always @(posedge clk_sys) begin
-	reg ioctl_downlD;
-	reg [15:0] reset_count;
+logic reset = 1;
+logic rom_loaded = 0;
+always_ff @(posedge clk_sys) begin
+	logic ioctl_downlD;
+	logic [15:0] reset_count;
 	ioctl_downlD <= ioctl_download;
 
 	if (status[0] | buttons[1] | ~rom_loaded) reset_count <= 16'hffff;
@@ -368,8 +370,10 @@ wire m_revrs_2 = joystick_1[5];
 wire m_start_2 = joystick_1[6];
 wire m_coin_2  = joystick_1[7];
 
-//wire [7:0] dip1 = ~8'b00000010;
-//wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
+wire flip   = status[8];
+wire invuln = status[9];
+wire [7:0] dip1 = ~8'b00000010;
+wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
 
 // Video
 wire       palmode = status[1];
@@ -377,15 +381,15 @@ wire [1:0] ar      = status[4:3];
 assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
 
-wire hblank, vblank;
-wire hs, vs;
-wire [1:0] rs;
-wire [2:0] g;
-wire [2:0] b;
+logic hblank, vblank;
+logic hs, vs;
+logic [1:0] rs;
+logic [2:0] g;
+logic [2:0] b;
 wire [2:0] r={rs,1'b0};
 
 logic ce_pix;
-always_ff @(posedge clk_mem) begin
+always_ff @(posedge clk_vid) begin
 	logic [2:0] div;
 	div <= div + 1'd1;
 	ce_pix <= !div;
@@ -395,7 +399,7 @@ arcade_video #(384,9) arcade_video
 (
 	.*,
 
-	.clk_video(clk_mem),
+	.clk_video(clk_vid),
 	.RGB_in({r,g,b}),
 	.HBlank(hblank),
 	.VBlank(vblank),
@@ -415,8 +419,8 @@ always_ff @(posedge clk_sys) begin
 	logic [15:0] sum;
 	clk_aud = 0;
 	sum = sum + 16'd895;
-	if(sum >= 36863) begin
-		sum = sum - 16'd36863;
+	if(sum >= 36864) begin
+		sum = sum - 16'd36864;
 		clk_aud = 1;
 	end
 end
@@ -443,6 +447,8 @@ TropicalAngel TropicalAngel
 	.snd_rom_vma(snd_vma),
 	.sp_addr(sp_addr),
 	.sp_graphx32_do(sp_do),
+	.dip_switch_1(dip1),
+	.dip_switch_2(dip2),
 	.input_0(~{4'd0, m_coin_1, 1'b0 /*service*/, m_start_2, m_start_1}),
 	.input_1(~{m_gas_1, 1'b0, m_revrs_1, 1'b0, m_up_1, m_down_1, m_left_1, m_right_1}),
 	.input_2(~{m_gas_2, 1'b0, m_revrs_2, m_coin_2, m_up_2, m_down_2, m_left_2, m_right_2}),
