@@ -415,8 +415,8 @@ always_ff @(posedge clk_sys) begin
 	logic [15:0] sum;
 	clk_aud = 0;
 	sum = sum + 16'd895;
-	if(sum >= 36000) begin
-		sum = sum - 16'd36000;
+	if(sum >= 36863) begin
+		sum = sum - 16'd36863;
 		clk_aud = 1;
 	end
 end
