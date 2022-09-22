@@ -339,12 +339,12 @@ reg rom_loaded = 0;
 always @(posedge clk_sys) begin
 	reg ioctl_downlD;
 	reg [15:0] reset_count;
-	ioctl_downlD <= ioctl_downl;
+	ioctl_downlD <= ioctl_download;
 
 	if (status[0] | buttons[1] | ~rom_loaded) reset_count <= 16'hffff;
 	else if (reset_count != 0) reset_count <= reset_count - 1'd1;
 
-	if (ioctl_downlD & ~ioctl_downl) rom_loaded <= 1;
+	if (ioctl_downlD & ~ioctl_download) rom_loaded <= 1;
 	reset <= reset_count != 16'h0000;
 
 end
@@ -368,8 +368,8 @@ wire m_revrs_2 = joystick_1[5];
 wire m_start_2 = joystick_1[6];
 wire m_coin_2  = joystick_1[7];
 
-wire [7:0] dip1 = ~8'b00000010;
-wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
+//wire [7:0] dip1 = ~8'b00000010;
+//wire [7:0] dip2 = ~{ 1'b0, invuln, 1'b0, 1'b0/*stop*/, 3'b010, flip };
 
 // Video
 wire       palmode = status[1];
